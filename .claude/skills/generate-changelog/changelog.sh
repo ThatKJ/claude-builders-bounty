@@ -183,8 +183,9 @@ UNRELEASED_FILE="${WORKDIR}/unreleased"
 # --- Step 7: merge with any existing CHANGELOG.md, preserving history -------
 # Strip a prior top-level "# Changelog" title and any prior "## Unreleased"
 # section (heading through the next "## " heading); everything else — every
-# past release section — is preserved byte-for-byte. This keeps repeated runs
-# idempotent instead of accumulating duplicate entries.
+# past release section — is preserved exactly as written, internal blank
+# lines included. This keeps repeated runs idempotent instead of
+# accumulating duplicate entries.
 HISTORY_FILE="${WORKDIR}/history"
 if [ -f "$OUTPUT_PATH" ]; then
   awk '
@@ -198,25 +199,25 @@ else
   : > "$HISTORY_FILE"
 fi
 
+# Only the freshly generated header + Unreleased section is normalized (it is
+# already built with controlled single blank lines via the echo calls above,
+# so no further squeezing is applied to it either). Preserved history is
+# never blank-line-squeezed, so intentional formatting inside old release
+# sections — including multiple consecutive blank lines — survives untouched.
 FINAL_FILE="${WORKDIR}/final"
 {
   echo "# Changelog"
   echo
   cat "$UNRELEASED_FILE"
-  # Drop leading blank lines from preserved history so spacing stays clean.
+  # Drop leading blank lines from preserved history so exactly one blank
+  # line separates it from the generated Unreleased section above; this
+  # does not touch any blank lines inside the history content itself.
   sed -e '/./,$!d' "$HISTORY_FILE"
 } > "$FINAL_FILE"
 
-# Collapse any run of 2+ blank lines into a single blank line.
-SQUEEZED_FILE="${WORKDIR}/squeezed"
-awk '
-  BEGIN { blank=0 }
-  /^[[:space:]]*$/ { blank++; if (blank > 1) next; print ""; next }
-  { blank=0; print }
-' "$FINAL_FILE" > "$SQUEEZED_FILE"
-
-# Ensure exactly one trailing newline at EOF.
-printf '%s\n' "$(cat "$SQUEEZED_FILE")" > "$OUTPUT_PATH"
+# Ensure exactly one trailing newline at EOF (does not otherwise alter
+# interior content or blank-line structure).
+printf '%s\n' "$(cat "$FINAL_FILE")" > "$OUTPUT_PATH"
 
 # --- Step 8: report -----------------------------------------------------
 added_count="$(wc -l < "$ADDED_FILE" | tr -d '[:space:]')"

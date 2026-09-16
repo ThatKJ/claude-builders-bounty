@@ -275,6 +275,37 @@ fi
 assert_contains "${REPO}/CHANGELOG.md" "Init" "the real commit is still present"
 
 # ---------------------------------------------------------------------------
+start_test "18: existing historical release internal formatting is preserved exactly"
+REPO="$(new_repo repo17)"
+cat > "${REPO}/CHANGELOG.md" <<'EOF'
+# Changelog
+
+## 2.0.0 - 2025-06-01
+
+### Added
+
+- First historical item
+
+
+- Second historical item
+EOF
+# Capture the historical release block (from its heading to EOF) exactly as
+# authored, including the intentional double blank line, before generation.
+awk '/^## 2\.0\.0/{found=1} found{print}' "${REPO}/CHANGELOG.md" > "${REPO}/historical_before.txt"
+commit_in "$REPO" "Initial commit"
+( cd "$REPO" && git tag v2.0.0 )
+commit_in "$REPO" "feat: add new thing"
+run_changelog "$REPO" >/dev/null
+awk '/^## 2\.0\.0/{found=1} found{print}' "${REPO}/CHANGELOG.md" > "${REPO}/historical_after.txt"
+if diff -q "${REPO}/historical_before.txt" "${REPO}/historical_after.txt" >/dev/null 2>&1; then
+  pass "historical release internal blank-line formatting preserved exactly"
+else
+  fail "historical release formatting was altered"
+  diff "${REPO}/historical_before.txt" "${REPO}/historical_after.txt" || true
+fi
+assert_contains "${REPO}/CHANGELOG.md" "Add new thing" "new Unreleased entry still present alongside preserved history"
+
+# ---------------------------------------------------------------------------
 start_test "not a git repository"
 NONGIT="${ROOT_TMP}/plain-dir"
 mkdir -p "$NONGIT"

@@ -7,8 +7,10 @@ no fabricated entries, no dependencies beyond Git + Bash.
 
 1. Copy the `.claude/skills/generate-changelog/` directory into your repo (or
    use it directly from here if you're already in this repo).
-2. Run `/generate-changelog` in Claude Code, or `bash changelog.sh` from a
-   terminal inside your repo.
+2. Run `/generate-changelog` in Claude Code, or from your repository root:
+   ```bash
+   bash .claude/skills/generate-changelog/changelog.sh
+   ```
 3. Review the `## Unreleased` section of the resulting `CHANGELOG.md`.
 
 ## What it does
@@ -40,9 +42,10 @@ instead of erroring out, and tells you it's doing so.
 ## Existing `CHANGELOG.md`?
 
 Safe. The script only ever replaces the `## Unreleased` section; every past
-`## <version>` release section is preserved byte-for-byte. Running it twice
-in a row with no new commits produces an identical file — it's idempotent
-and never duplicates entries.
+`## <version>` release section — including its internal formatting, such as
+blank lines — is preserved exactly as written. Running it twice in a row
+with no new commits produces an identical file — it's idempotent and never
+duplicates entries.
 
 ## No new commits since the last tag?
 
@@ -60,9 +63,13 @@ repository's own history — see the PR description for that output.
 
 ## Tests
 
+From your repository root:
+
 ```bash
-bash tests/test_changelog.sh
+bash .claude/skills/generate-changelog/tests/test_changelog.sh
 ```
+
+(or `bash tests/test_changelog.sh` if you're already inside this directory)
 
 Builds disposable temporary git repositories (own local identity, never your
 global git config) and covers: tag detection, the no-tag fallback,
